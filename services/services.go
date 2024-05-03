@@ -7,6 +7,7 @@ import (
 
 	"go-api/errors"
 	"go-api/logging"
+	"go-api/config"
 	"go-api/repositories"
 )
 
@@ -16,7 +17,13 @@ type RegisterRequest struct {
 }
 
 func Register(username, password string) error {
-	cmd := "./script.sh"
+	cfg, err := config.LoadConfig()
+    if err != nil {
+        logging.Logger.WithError(err).Error("Failed to load configuration")
+        return errors.NewAPIError(http.StatusInternalServerError, "Failed to register user")
+    }
+
+    cmd := cfg.RegisterScript
 	out, err := exec.Command(cmd, username, password).Output()
 	if err != nil {
 		logging.Logger.WithError(err).Error("Failed to execute register script")

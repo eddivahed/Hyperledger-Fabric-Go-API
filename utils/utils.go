@@ -10,6 +10,7 @@ import (
 
 
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
+	"go-api/config"
 	"go-api/errors"
 	"go-api/logging"
 	"google.golang.org/grpc"
@@ -31,36 +32,42 @@ const (
 )
 
 func NewGrpcConnection() *grpc.ClientConn {
-	certificate, err := LoadCertificate(TLSCertPath)
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to load TLS certificate")
-		panic(err)
+		logging.Logger.WithError(err).Fatal("Failed to load configuration")
+	}
+
+	certificate, err := LoadCertificate(cfg.Fabric.CryptoPath + cfg.Fabric.TLSCertPath)
+	if err != nil {
+		logging.Logger.WithError(err).Fatal("Failed to load TLS certificate")
 	}
 
 	certPool := x509.NewCertPool()
 	certPool.AddCert(certificate)
-	transportCredentials := credentials.NewClientTLSFromCert(certPool, GatewayPeer)
+	transportCredentials := credentials.NewClientTLSFromCert(certPool, cfg.Fabric.GatewayPeer)
 
-	connection, err := grpc.Dial(PeerEndpoint, grpc.WithTransportCredentials(transportCredentials))
+	connection, err := grpc.Dial(cfg.Fabric.PeerEndpoint, grpc.WithTransportCredentials(transportCredentials))
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to create gRPC connection")
-		panic(err)
+		logging.Logger.WithError(err).Fatal("Failed to create gRPC connection")
 	}
 
 	return connection
 }
 
 func NewIdentity(certPath string) *identity.X509Identity {
-	certificate, err := LoadCertificate(certPath)
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to load identity certificate")
-		panic(err)
+		logging.Logger.WithError(err).Fatal("Failed to load configuration")
 	}
 
-	id, err := identity.NewX509Identity(MSPID, certificate)
+	certificate, err := LoadCertificate(certPath)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to create X509 identity")
-		panic(err)
+		logging.Logger.WithError(err).Fatal("Failed to load identity certificate")
+	}
+
+	id, err := identity.NewX509Identity(cfg.Fabric.MSPID, certificate)
+	if err != nil {
+		logging.Logger.WithError(err).Fatal("Failed to create X509 identity")
 	}
 
 	return id

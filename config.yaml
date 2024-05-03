@@ -1,0 +1,35 @@
+# Server configuration
+server:
+  # Port on which the server will listen
+  port: 8082
+
+# Fabric network configuration
+fabric:
+  # MSPID of the organization
+  mspid: "Org1MSP"
+  # Path to the crypto material
+  cryptopath: "../organizations/peerOrganizations/org1.example.com"
+  # Path to the TLS certificate
+  tlscertpath: "/peers/peer0.org1.example.com/tls/ca.crt"
+  # Endpoint of the peer
+  peerendpoint: "localhost:7051"
+  # Gateway peer
+  gatewaypeer: "peer0.org1.example.com"
+  # Channel name
+  channelname: "mychannel"
+  # Chaincode name
+  chaincodename: "token_erc20"
+
+# Timeout configuration
+timeouts:
+  # Timeout for evaluate transactions
+  evaluate: 5s
+  # Timeout for endorse transactions
+  endorse: 15s
+  # Timeout for submit transactions
+  submit: 5s
+  # Timeout for commit status
+  commitstatus: 1m
+
+# Register Script SH File
+RegisterScript: "./script.sh"
