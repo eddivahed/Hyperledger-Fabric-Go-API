@@ -8,6 +8,7 @@ import (
 	"go-api/errors"
 	"go-api/logging"
 	"go-api/utils"
+	"go-api/config"
 )
 
 func SaveUser(username, password string) error {
@@ -17,23 +18,29 @@ func SaveUser(username, password string) error {
 }
 
 func GetContract(username string) (*client.Contract, error) {
-	certPath := fmt.Sprintf(utils.CryptoPath+"/users/%s@org1.example.com/msp/signcerts/cert.pem", username)
-	keyPath := fmt.Sprintf(utils.CryptoPath+"/users/%s@org1.example.com/msp/keystore/", username)
+	cfg, err := config.LoadConfig()
+    if err != nil {
+        logging.Logger.WithError(err).Error("Failed to load configuration")
+        return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get contract")
+    }
 
-	clientConnection := utils.NewGrpcConnection()
+    certPath := fmt.Sprintf(cfg.Fabric.CryptoPath+"/users/%s@org1.example.com/msp/signcerts/cert.pem", username)
+    keyPath := fmt.Sprintf(cfg.Fabric.CryptoPath+"/users/%s@org1.example.com/msp/keystore/", username)
 
-	id := utils.NewIdentity(certPath)
-	sign := utils.NewSign(keyPath)
+    clientConnection := utils.NewGrpcConnection()
 
-	gateway, err := client.Connect(
-		id,
-		client.WithSign(sign),
-		client.WithClientConnection(clientConnection),
-		client.WithEvaluateTimeout(utils.EvaluateTimeout),
-		client.WithEndorseTimeout(utils.EndorseTimeout),
-		client.WithSubmitTimeout(utils.SubmitTimeout),
-		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
-	)
+    id := utils.NewIdentity(certPath)
+    sign := utils.NewSign(keyPath)
+
+    gateway, err := client.Connect(
+        id,
+        client.WithSign(sign),
+        client.WithClientConnection(clientConnection),
+        client.WithEvaluateTimeout(cfg.Timeouts.Evaluate),
+        client.WithEndorseTimeout(cfg.Timeouts.Endorse),
+        client.WithSubmitTimeout(cfg.Timeouts.Submit),
+        client.WithCommitStatusTimeout(cfg.Timeouts.CommitStatus),
+    )
 	if err != nil {
 		logging.Logger.WithError(err).Error("Failed to connect to gateway")
 		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get contract")
@@ -46,23 +53,29 @@ func GetContract(username string) (*client.Contract, error) {
 }
 
 func GetAdminContract() (*client.Contract, error) {
-	certPath := utils.CryptoPath + "/users/User1@org1.example.com/msp/signcerts/cert.pem"
-	keyPath := utils.CryptoPath + "/users/User1@org1.example.com/msp/keystore/"
+	cfg, err := config.LoadConfig()
+    if err != nil {
+        logging.Logger.WithError(err).Error("Failed to load configuration")
+        return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get admin contract")
+    }
 
-	clientConnection := utils.NewGrpcConnection()
+    certPath := cfg.Fabric.CryptoPath + "/users/Admin@org1.example.com/msp/signcerts/cert.pem"
+    keyPath := cfg.Fabric.CryptoPath + "/users/Admin@org1.example.com/msp/keystore/"
 
-	id := utils.NewIdentity(certPath)
-	sign := utils.NewSign(keyPath)
+    clientConnection := utils.NewGrpcConnection()
 
-	gateway, err := client.Connect(
-		id,
-		client.WithSign(sign),
-		client.WithClientConnection(clientConnection),
-		client.WithEvaluateTimeout(utils.EvaluateTimeout),
-		client.WithEndorseTimeout(utils.EndorseTimeout),
-		client.WithSubmitTimeout(utils.SubmitTimeout),
-		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
-	)
+    id := utils.NewIdentity(certPath)
+    sign := utils.NewSign(keyPath)
+
+    gateway, err := client.Connect(
+        id,
+        client.WithSign(sign),
+        client.WithClientConnection(clientConnection),
+        client.WithEvaluateTimeout(cfg.Timeouts.Evaluate),
+        client.WithEndorseTimeout(cfg.Timeouts.Endorse),
+        client.WithSubmitTimeout(cfg.Timeouts.Submit),
+        client.WithCommitStatusTimeout(cfg.Timeouts.CommitStatus),
+    )
 	if err != nil {
 		logging.Logger.WithError(err).Error("Failed to connect to gateway")
 		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get admin contract")

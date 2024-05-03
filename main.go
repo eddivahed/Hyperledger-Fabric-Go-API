@@ -1,16 +1,22 @@
 package main
 
 import (
-    "log"
-    "net/http"
-    
-    "go-api/routes"
+	"fmt"
+	"log"
+	"net/http"
+
+	"go-api/config"
+	"go-api/routes"
 )
 
 func main() {
-    // Initialize and configure dependencies
-    routes.RegisterRoutes()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
-    // Start the server
-    log.Fatal(http.ListenAndServe(":8082", nil))
+	routes.RegisterRoutes()
+
+	log.Printf("Server running on port %d", cfg.Server.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), nil))
 }
