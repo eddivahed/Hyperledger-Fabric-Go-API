@@ -5,35 +5,49 @@ import (
 	"net/http"
 	"strconv"
 
+	"go-api/errors"
+	"go-api/logging"
 	"go-api/services"
 )
 
-func Register(w http.ResponseWriter, r *http.Request) {
-	// Parse request body
-	var reqData services.RegisterRequest
-	json.NewDecoder(r.Body).Decode(&reqData)
+func Index(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Welcome to the API!"))
+}
 
-	// Call the register service
-	err := services.Register(reqData.Username, reqData.Password)
+func Register(w http.ResponseWriter, r *http.Request) {
+	var reqData services.RegisterRequest
+	err := json.NewDecoder(r.Body).Decode(&reqData)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		logging.Logger.WithError(err).Error("Failed to decode request payload")
+		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
 		return
 	}
 
-	// Return the response
+	err = services.Register(reqData.Username, reqData.Password)
+	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to register user")
+		errors.HandleError(w, err)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
 }
 
 func Minter(w http.ResponseWriter, r *http.Request) {
 	var reqData services.MintRequest
-	json.NewDecoder(r.Body).Decode(&reqData)
-
-	err := services.Mint(reqData.Username, reqData.Value)
+	err := json.NewDecoder(r.Body).Decode(&reqData)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		logging.Logger.WithError(err).Error("Failed to decode request payload")
+		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
+		return
+	}
+
+	err = services.Mint(reqData.Username, reqData.Value)
+	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to mint tokens")
+		errors.HandleError(w, err)
 		return
 	}
 
@@ -48,12 +62,17 @@ func Minter(w http.ResponseWriter, r *http.Request) {
 
 func Balancer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.BalanceRequest
-	json.NewDecoder(r.Body).Decode(&reqData)
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to decode request payload")
+		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
+		return
+	}
 
 	balance, err := services.ClientAccountBalance(reqData.Username)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		logging.Logger.WithError(err).Error("Failed to get account balance")
+		errors.HandleError(w, err)
 		return
 	}
 
@@ -67,12 +86,17 @@ func Balancer(w http.ResponseWriter, r *http.Request) {
 
 func Transferer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.TransferRequest
-	json.NewDecoder(r.Body).Decode(&reqData)
-
-	err := services.Transfer(reqData.Username, reqData.Receiver, reqData.Value)
+	err := json.NewDecoder(r.Body).Decode(&reqData)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		logging.Logger.WithError(err).Error("Failed to decode request payload")
+		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
+		return
+	}
+
+	err = services.Transfer(reqData.Username, reqData.Receiver, reqData.Value)
+	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to transfer tokens")
+		errors.HandleError(w, err)
 		return
 	}
 
@@ -88,12 +112,17 @@ func Transferer(w http.ResponseWriter, r *http.Request) {
 
 func ClientAccountIDer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.AccountIDRequest
-	json.NewDecoder(r.Body).Decode(&reqData)
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to decode request payload")
+		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
+		return
+	}
 
 	clientID, err := services.ClientAccountID(reqData.Username)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		logging.Logger.WithError(err).Error("Failed to get client account ID")
+		errors.HandleError(w, err)
 		return
 	}
 
@@ -108,13 +137,11 @@ func ClientAccountIDer(w http.ResponseWriter, r *http.Request) {
 func Initializer(w http.ResponseWriter, r *http.Request) {
 	err := services.Initialize()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		logging.Logger.WithError(err).Error("Failed to initialize service")
+		errors.HandleError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Service initialized successfully"))
 }
-
-// Add other handler functions...

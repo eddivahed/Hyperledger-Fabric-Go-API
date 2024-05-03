@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/hyperledger/fabric-gateway v1.5.1
+	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/grpc v1.63.2
 )
 

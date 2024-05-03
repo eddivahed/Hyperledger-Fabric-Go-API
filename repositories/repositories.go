@@ -2,14 +2,17 @@ package repositories
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"go-api/errors"
+	"go-api/logging"
 	"go-api/utils"
 )
 
 func SaveUser(username, password string) error {
+	logging.Logger.Infof("Saving user: %s", username)
 	// Simulate saving user to the database
-	fmt.Printf("Saving user: %s\n", username)
 	return nil
 }
 
@@ -18,6 +21,7 @@ func GetContract(username string) (*client.Contract, error) {
 	keyPath := fmt.Sprintf(utils.CryptoPath+"/users/%s@org1.example.com/msp/keystore/", username)
 
 	clientConnection := utils.NewGrpcConnection()
+	defer clientConnection.Close()
 
 	id := utils.NewIdentity(certPath)
 	sign := utils.NewSign(keyPath)
@@ -32,7 +36,8 @@ func GetContract(username string) (*client.Contract, error) {
 		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
 	)
 	if err != nil {
-		return nil, err
+		logging.Logger.WithError(err).Error("Failed to connect to gateway")
+		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get contract")
 	}
 
 	network := gateway.GetNetwork(utils.ChannelName)
@@ -42,10 +47,11 @@ func GetContract(username string) (*client.Contract, error) {
 }
 
 func GetAdminContract() (*client.Contract, error) {
-	certPath := utils.CryptoPath + "/users/User1@org1.example.com/msp/signcerts/cert.pem"
-	keyPath := utils.CryptoPath + "/users/User1@org1.example.com/msp/keystore/"
+	certPath := utils.CryptoPath + "/users/Admin@org1.example.com/msp/signcerts/cert.pem"
+	keyPath := utils.CryptoPath + "/users/Admin@org1.example.com/msp/keystore/"
 
 	clientConnection := utils.NewGrpcConnection()
+	defer clientConnection.Close()
 
 	id := utils.NewIdentity(certPath)
 	sign := utils.NewSign(keyPath)
@@ -60,7 +66,8 @@ func GetAdminContract() (*client.Contract, error) {
 		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
 	)
 	if err != nil {
-		return nil, err
+		logging.Logger.WithError(err).Error("Failed to connect to gateway")
+		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get admin contract")
 	}
 
 	network := gateway.GetNetwork(utils.ChannelName)
@@ -68,5 +75,3 @@ func GetAdminContract() (*client.Contract, error) {
 
 	return contract, nil
 }
-
-// Add other repository functions...
