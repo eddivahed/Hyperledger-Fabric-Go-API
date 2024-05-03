@@ -3,6 +3,7 @@ module go-api
 go 1.19
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/hyperledger/fabric-gateway v1.5.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
