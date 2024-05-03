@@ -6,8 +6,12 @@ import (
 	"io/ioutil"
 	"path"
 	"time"
+	"net/http"
+
 
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
+	"go-api/errors"
+	"go-api/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -29,6 +33,7 @@ const (
 func NewGrpcConnection() *grpc.ClientConn {
 	certificate, err := LoadCertificate(TLSCertPath)
 	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to load TLS certificate")
 		panic(err)
 	}
 
@@ -38,7 +43,8 @@ func NewGrpcConnection() *grpc.ClientConn {
 
 	connection, err := grpc.Dial(PeerEndpoint, grpc.WithTransportCredentials(transportCredentials))
 	if err != nil {
-		panic(fmt.Errorf("failed to create gRPC connection: %v", err))
+		logging.Logger.WithError(err).Error("Failed to create gRPC connection")
+		panic(err)
 	}
 
 	return connection
@@ -47,11 +53,13 @@ func NewGrpcConnection() *grpc.ClientConn {
 func NewIdentity(certPath string) *identity.X509Identity {
 	certificate, err := LoadCertificate(certPath)
 	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to load identity certificate")
 		panic(err)
 	}
 
 	id, err := identity.NewX509Identity(MSPID, certificate)
 	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to create X509 identity")
 		panic(err)
 	}
 
@@ -61,7 +69,7 @@ func NewIdentity(certPath string) *identity.X509Identity {
 func LoadCertificate(filename string) (*x509.Certificate, error) {
 	certificatePEM, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read certificate file: %v", err)
+		return nil, errors.NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Failed to read certificate file: %v", err))
 	}
 	return identity.CertificateFromPEM(certificatePEM)
 }
@@ -69,23 +77,26 @@ func LoadCertificate(filename string) (*x509.Certificate, error) {
 func NewSign(keyPath string) identity.Sign {
 	files, err := ioutil.ReadDir(keyPath)
 	if err != nil {
-		panic(fmt.Errorf("failed to read private key directory: %v", err))
+		logging.Logger.WithError(err).Error("Failed to read private key directory")
+		panic(err)
 	}
 	privateKeyPEM, err := ioutil.ReadFile(path.Join(keyPath, files[0].Name()))
-
 	if err != nil {
-		panic(fmt.Errorf("failed to read private key file: %v", err))
+		logging.Logger.WithError(err).Error("Failed to read private key file")
+		panic(err)
 	}
 
 	privateKey, err := identity.PrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to parse private key")
 		panic(err)
 	}
 
 	sign, err := identity.NewPrivateKeySign(privateKey)
 	if err != nil {
+		logging.Logger.WithError(err).Error("Failed to create signer")
 		panic(err)
 	}
 
 	return sign
-} 
+}

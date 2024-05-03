@@ -2,14 +2,17 @@ package repositories
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"go-api/errors"
+	"go-api/logging"
 	"go-api/utils"
 )
 
 func SaveUser(username, password string) error {
+	logging.Logger.Infof("Saving user: %s", username)
 	// Simulate saving user to the database
-	fmt.Printf("Saving user: %s\n", username)
 	return nil
 }
 
@@ -32,7 +35,8 @@ func GetContract(username string) (*client.Contract, error) {
 		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
 	)
 	if err != nil {
-		return nil, err
+		logging.Logger.WithError(err).Error("Failed to connect to gateway")
+		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get contract")
 	}
 
 	network := gateway.GetNetwork(utils.ChannelName)
@@ -60,7 +64,8 @@ func GetAdminContract() (*client.Contract, error) {
 		client.WithCommitStatusTimeout(utils.CommitStatusTimeout),
 	)
 	if err != nil {
-		return nil, err
+		logging.Logger.WithError(err).Error("Failed to connect to gateway")
+		return nil, errors.NewAPIError(http.StatusInternalServerError, "Failed to get admin contract")
 	}
 
 	network := gateway.GetNetwork(utils.ChannelName)
@@ -68,6 +73,3 @@ func GetAdminContract() (*client.Contract, error) {
 
 	return contract, nil
 }
-
-// Add other repository functions...
- 
