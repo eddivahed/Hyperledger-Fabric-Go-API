@@ -5,32 +5,25 @@ import (
 	"net/http"
 	"strconv"
 
+	"go-api/services"
 	"go-api/errors"
 	"go-api/logging"
-	"go-api/services"
 )
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Welcome to the API!"))
-}
-
 func Register(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
 	var reqData services.RegisterRequest
-	err := json.NewDecoder(r.Body).Decode(&reqData)
+	json.NewDecoder(r.Body).Decode(&reqData)
+
+	// Call the register service
+	err := services.Register(reqData.Username, reqData.Password)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to decode request payload")
-		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
-	err = services.Register(reqData.Username, reqData.Password)
-	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to register user")
-		errors.HandleError(w, err)
-		return
-	}
-
+	// Return the response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
 }
@@ -60,19 +53,16 @@ func Minter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// Update other handler functions similarly
+
 func Balancer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.BalanceRequest
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to decode request payload")
-		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
-		return
-	}
+	json.NewDecoder(r.Body).Decode(&reqData)
 
 	balance, err := services.ClientAccountBalance(reqData.Username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get account balance")
-		errors.HandleError(w, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -86,17 +76,12 @@ func Balancer(w http.ResponseWriter, r *http.Request) {
 
 func Transferer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.TransferRequest
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to decode request payload")
-		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
-		return
-	}
+	json.NewDecoder(r.Body).Decode(&reqData)
 
-	err = services.Transfer(reqData.Username, reqData.Receiver, reqData.Value)
+	err := services.Transfer(reqData.Username, reqData.Receiver, reqData.Value)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to transfer tokens")
-		errors.HandleError(w, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -112,17 +97,12 @@ func Transferer(w http.ResponseWriter, r *http.Request) {
 
 func ClientAccountIDer(w http.ResponseWriter, r *http.Request) {
 	var reqData services.AccountIDRequest
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to decode request payload")
-		errors.HandleError(w, errors.NewAPIError(http.StatusBadRequest, "Invalid request payload"))
-		return
-	}
+	json.NewDecoder(r.Body).Decode(&reqData)
 
 	clientID, err := services.ClientAccountID(reqData.Username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get client account ID")
-		errors.HandleError(w, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -137,11 +117,13 @@ func ClientAccountIDer(w http.ResponseWriter, r *http.Request) {
 func Initializer(w http.ResponseWriter, r *http.Request) {
 	err := services.Initialize()
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to initialize service")
-		errors.HandleError(w, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Service initialized successfully"))
 }
+
+// Add other handler functions... 

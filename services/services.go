@@ -1,14 +1,15 @@
 package services
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"net/http"
 
 
-	"go-api/errors"
-	"go-api/logging"
 	"go-api/repositories"
+	"go-api/errors"
+
 )
 
 type RegisterRequest struct {
@@ -17,20 +18,20 @@ type RegisterRequest struct {
 }
 
 func Register(username, password string) error {
+	// Execute the script.sh script
 	cmd := "./script.sh"
 	out, err := exec.Command(cmd, username, password).Output()
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to execute register script")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to register user")
+		return fmt.Errorf("failed to execute register script: %v", err)
 	}
 
+	// Save the user in the repository
 	err = repositories.SaveUser(username, password)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to save user")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to register user")
+		return fmt.Errorf("failed to save user: %v", err)
 	}
 
-	logging.Logger.Infof("User registered: %s", string(out))
+	fmt.Printf("User registered: %s\n", string(out))
 	return nil
 }
 
@@ -48,18 +49,18 @@ type MintResponse struct {
 func Mint(username string, value int) error {
 	contract, err := repositories.GetContract(username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get contract")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to mint tokens")
+		return errors.NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Failed to get contract: %v", err))
 	}
 
 	_, err = contract.SubmitTransaction("Mint", strconv.Itoa(value))
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to submit transaction")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to mint tokens")
+		return errors.NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Failed to submit transaction: %v", err))
 	}
 
 	return nil
 }
+
+// Update other service functions similarly
 
 type BalanceRequest struct {
 	Username string `json:"username"`
@@ -73,14 +74,12 @@ type BalanceResponse struct {
 func ClientAccountBalance(username string) (string, error) {
 	contract, err := repositories.GetContract(username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get contract")
-		return "", errors.NewAPIError(http.StatusInternalServerError, "Failed to get account balance")
+		return "", err
 	}
 
 	evaluateResult, err := contract.EvaluateTransaction("ClientAccountBalance")
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to evaluate transaction")
-		return "", errors.NewAPIError(http.StatusInternalServerError, "Failed to get account balance")
+		return "", fmt.Errorf("failed to evaluate transaction: %v", err)
 	}
 
 	return string(evaluateResult), nil
@@ -102,14 +101,12 @@ type TransferResponse struct {
 func Transfer(username, receiver string, value int) error {
 	contract, err := repositories.GetContract(username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get contract")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to transfer tokens")
+		return err
 	}
 
 	_, err = contract.SubmitTransaction("Transfer", receiver, strconv.Itoa(value))
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to submit transaction")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to transfer tokens")
+		return fmt.Errorf("failed to submit transaction: %v", err)
 	}
 
 	return nil
@@ -127,14 +124,12 @@ type AccountIDResponse struct {
 func ClientAccountID(username string) (string, error) {
 	contract, err := repositories.GetContract(username)
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get contract")
-		return "", errors.NewAPIError(http.StatusInternalServerError, "Failed to get client account ID")
+		return "", err
 	}
 
 	evaluateResult, err := contract.EvaluateTransaction("ClientAccountID")
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to evaluate transaction")
-		return "", errors.NewAPIError(http.StatusInternalServerError, "Failed to get client account ID")
+		return "", fmt.Errorf("failed to evaluate transaction: %v", err)
 	}
 
 	return string(evaluateResult), nil
@@ -143,15 +138,14 @@ func ClientAccountID(username string) (string, error) {
 func Initialize() error {
 	contract, err := repositories.GetAdminContract()
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to get admin contract")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to initialize service")
+		return err
 	}
 
 	_, err = contract.SubmitTransaction("Initialize", "energycoin", "ec", "2")
 	if err != nil {
-		logging.Logger.WithError(err).Error("Failed to submit transaction")
-		return errors.NewAPIError(http.StatusInternalServerError, "Failed to initialize service")
+		return fmt.Errorf("failed to submit transaction: %v", err)
 	}
 
 	return nil
 }
+ 

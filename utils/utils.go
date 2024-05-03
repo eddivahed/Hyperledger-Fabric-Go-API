@@ -88,4 +88,4 @@ func NewSign(keyPath string) identity.Sign {
 	}
 
 	return sign
-}
+} 
