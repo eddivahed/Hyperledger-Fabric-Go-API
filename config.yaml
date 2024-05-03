@@ -33,3 +33,7 @@ timeouts:
 
 # Register Script SH File
 RegisterScript: "./script.sh"
+
+# Jwt Secret
+jwt:
+  secretKey: "edy5132361"

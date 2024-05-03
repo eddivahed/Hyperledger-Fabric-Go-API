@@ -11,10 +11,15 @@ type Config struct {
 	Fabric         FabricConfig
 	Timeouts       TimeoutsConfig
 	RegisterScript string
+	JWT JWTConfig
 }
 
 type ServerConfig struct {
 	Port int
+}
+
+type JWTConfig struct {
+	SecretKey string
 }
 
 type FabricConfig struct {
