@@ -21,7 +21,7 @@ git clone https://github.com/hyperledger/fabric-samples.git
 cd fabric-samples/test-network
 
 3. Start the Hyperledger Fabric test network:
-./network.sh up createChannel
+./network.sh up createChannel -ca
 
 4. Deploy the ERC20 token chaincode:
 ./network.sh deployCC -ccn token_erc20 -ccp ../token-erc20/chaincode-go -ccl go
